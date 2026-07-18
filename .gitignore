@@ -1,0 +1,9 @@
+# dane — nie commitujemy (licencja + rozmiar)
+data/*.csv
+# śmieci SSMS / systemowe
+*.bak
+*.ndf
+*.mdf
+*.ldf
+Thumbs.db
+.vscode/
