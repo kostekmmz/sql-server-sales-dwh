@@ -1,6 +1,6 @@
-# dane — nie commitujemy (licencja + rozmiar)
+# data (size+license)
 data/*.csv
-# śmieci SSMS / systemowe
+# trashes 
 *.bak
 *.ndf
 *.mdf
