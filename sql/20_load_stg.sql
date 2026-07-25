@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS stg.orders;
 DROP TABLE IF EXISTS stg.products;
 DROP TABLE IF EXISTS stg.product_category_name_translation;
 DROP TABLE IF EXISTS stg.customers;
+DROP TABLE IF EXISTS stg.rejected_customers;
 GO
 
 CREATE TABLE stg.customers (
@@ -70,3 +71,92 @@ CREATE TABLE stg.product_category_name_translation (
     CONSTRAINT PK_stg_product_category_name_translation PRIMARY KEY (product_category_name)
 );
 GO
+
+CREATE TABLE stg.rejected_customers (
+	customer_id						CHAR(32)		NOT NULL,
+	customer_unique_id				CHAR(32)		NOT NULL,
+	customer_zip_code_prefix		CHAR(5)			NULL,
+	customer_city					NVARCHAR(100)	NOT NULL,
+	customer_state					CHAR(2)			NOT NULL,
+	reject_reason					NVARCHAR(30)	NOT NULL,
+	loaded_at						DATETIME2       NOT NULL CONSTRAINT DF_stg_rejected_customers DEFAULT SYSUTCDATETIME()
+
+);
+GO
+
+CREATE OR ALTER PROCEDURE stg.sp_load_customers 
+AS
+BEGIN
+	SET NOCOUNT ON; 
+
+	BEGIN TRY
+		BEGIN TRANSACTION;
+	
+	------------------------------
+	
+	------------------------------
+		TRUNCATE TABLE stg.customers;
+		TRUNCATE TABLE stg.rejected_customers;
+
+
+	-----------------------------
+	-- 1. Cleaning + validation rules
+	-----------------------------
+
+		SELECT 
+			NULLIF(TRIM(customer_id), '')				AS customer_id,
+			NULLIF(TRIM(customer_unique_id), '')		AS customer_unique_id,
+			NULLIF(TRIM(customer_zip_code_prefix), '')	AS customer_zip_code_prefix,
+			NULLIF(TRIM(customer_city), '')				AS customer_city,
+			UPPER(NULLIF(TRIM(customer_state), ''))		AS customer_state,
+			CASE 
+				WHEN NULLIF(TRIM(customer_id), '') IS NULL
+					THEN 'missing_customer_id'
+				WHEN NULLIF(TRIM(customer_unique_id), '') IS NULL
+					THEN 'missing_customer_unique_id'
+			END											AS reject_reason
+		INTO #cleaned
+		FROM raw.customers;
+
+		----------------------------------------------------------
+		-- 2. Rows to staging based on reject_reason -> NULL
+		----------------------------------------------------------
+	
+		INSERT INTO stg.customers
+			(customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state)
+
+		SELECT
+			customer_id,
+			customer_unique_id,
+			customer_zip_code_prefix,
+			customer_city,
+			customer_state
+		FROM #cleaned
+		WHERE reject_reason is NULL;
+	
+		----------------------------------------------------------
+		-- 3.Rows to staging based on reject_reason -> NOT NULL
+		----------------------------------------------------------
+		INSERT INTO stg.rejected_customers
+			(customer_id, customer_unique_id, customer_zip_code_prefix, customer_city, customer_state, reject_reason)
+
+		SELECT
+			customer_id,
+			customer_unique_id,
+			customer_zip_code_prefix,
+			customer_city,
+			customer_state,
+			reject_reason
+		FROM #cleaned
+		WHERE reject_reason IS NOT NULL;
+	
+		COMMIT TRANSACTION;
+	END TRY
+	BEGIN CATCH
+	IF @@TRANCOUNT >0 ROLLBACK TRANSACTION;
+	THROW;
+	END CATCH
+END;
+GO
+
+
