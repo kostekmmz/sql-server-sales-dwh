@@ -1,6 +1,6 @@
-CREATE DATABASE olist_dwh;
+CREATE DATABASE olist_dwh_2;
 GO
-USE olist_dwh;
+USE olist_dwh_2;
 GO
 CREATE SCHEMA raw;
 GO
@@ -203,6 +203,97 @@ CREATE TABLE stg.rejected_product_category_name_translation (
     product_category_name           NVARCHAR(100)   NULL,
     product_category_name_english   NVARCHAR(100)   NULL,
 	reject_reason					NVARCHAR(100)	NULL,
-    loaded_at                       DATETIME2       NOT NULL CONSTRAINT DF_rejected_product_category_name_translation DEFAULT SYSUTCDATETIME(),
+    loaded_at                       DATETIME2       NOT NULL CONSTRAINT DF_rejected_product_category_name_translation DEFAULT SYSUTCDATETIME()
 );
 GO
+
+CREATE TABLE dwh.dim_date (
+    date_key        INT NOT NULL PRIMARY KEY,
+    full_date       DATE NOT NULL,
+    year_num        INT NOT NULL,
+    quarter_num     INT NOT NULL,
+    month_num       INT NOT NULL,
+    month_name      NVARCHAR(20) NOT NULL,
+    day_of_month    INT NOT NULL,
+    day_of_week     INT NOT NULL,
+    day_name        NVARCHAR(20) NOT NULL,
+    is_weekend      BIT NOT NULL,
+	CONSTRAINT UQ_dim_date_full_date UNIQUE (full_date)
+);
+GO
+
+WITH dates AS (
+    SELECT CAST('2016-01-01' AS DATE) AS d
+    UNION ALL
+    SELECT DATEADD(DAY, 1, d)
+    FROM dates
+    WHERE d < '2020-12-31'
+)
+INSERT INTO dwh.dim_date (date_key, full_date, year_num, quarter_num, month_num, month_name, day_of_month, day_of_week, day_name, is_weekend)
+SELECT
+	YEAR(d) * 10000 + MONTH(d) * 100 + DAY(d) AS date_key,
+	d as full_date,
+	YEAR(d) AS year_num,
+	DATEPART(QUARTER, d) AS quarter_num,
+	DATEPART(m, d) as month_num,
+	DATENAME(MONTH, d) AS  month_name,
+	DAY(d) AS day_of_month,
+	DATEDIFF(DAY, '1900-01-01', d) % 7 +1 AS day_of_week,
+    DATENAME(WEEKDAY, d) AS day_name,
+    CAST(CASE WHEN DATEDIFF(DAY, '1900-01-01', d) %7 in (5,6) then 1 else 0 end as bit) as is_weekend
+FROM dates dt
+OPTION (MAXRECURSION 0);
+
+
+CREATE TABLE dwh.customers (
+    customer_key					INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+	customer_id						CHAR(32)        NOT NULL,
+	customer_unique_id				CHAR(32)        NOT NULL,
+    customer_zip_code_prefix        CHAR(5)         NULL,
+	customer_city					NVARCHAR(100)   NULL,
+    customer_state					CHAR(2)         NULL,
+	valid_from						DATE			NOT NULL,
+	valid_to						DATE			NOT NULL DEFAULT '9999-12-31',
+	is_current						BIT				NOT NULL DEFAULT 1,
+    loaded_at						DATETIME2       NOT NULL CONSTRAINT DF_dwh_customers_loaded_at DEFAULT SYSUTCDATETIME(),
+	CONSTRAINT ck_customer_valid_range CHECK (valid_from <= valid_to)
+);
+GO
+
+USE olist_dwh;
+CREATE TABLE dwh.fact_sales (
+    sales_key       BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    date_key        INT NOT NULL,
+    customer_key    INT NOT NULL,
+	product_key		INT NOT NULL,
+    order_id        CHAR(32) NOT NULL,
+	order_item_id   SMALLINT        NOT NULL,
+    order_status    VARCHAR(50) NULL,
+    price           DECIMAL(10,2) NOT NULL,
+    freight_value   DECIMAL(10,2) NOT NULL,
+    seller_id       CHAR(32) NOT NULL,
+    -- kolumny techniczne:
+    _loaded_at      DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    _source         VARCHAR(50) NOT NULL DEFAULT 'etl_practice'
+);
+ 
+
+
+CREATE UNIQUE INDEX IX_customers_current
+	ON dwh.customers(customer_id)
+	WHERE is_current = 1; 
+GO
+
+
+CREATE TABLE dwh.rejected_facts (
+    rejected_sales_key       BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+    date_key        INT NOT NULL,
+    customer_key    INT,
+	product_key		INT,
+    order_id        CHAR(32) NOT NULL,
+	order_status    VARCHAR(20) NOT NULL,
+	reject_reason				  NVARCHAR(100)   NULL,
+    _loaded_at      DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
+    _source         VARCHAR(50) NOT NULL DEFAULT 'etl_practice'
+);
+
