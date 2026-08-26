@@ -30,13 +30,6 @@ BEGIN
 		rows_affected = (SELECT COUNT(*) FROM stg.orders)
 	WHERE run_id = @run_id AND step_name = @current_step; 
 
-	EXEC stg.sp_load_orders;
-
-		UPDATE etl.run_log
-	SET finished_at = SYSDATETIME(), status = 'success',
-		rows_affected = (SELECT COUNT(*) FROM stg.order_items)
-	WHERE run_id = @run_id AND step_name = @current_step; 
-
 	--stg.sp_load_orders_items------------------------------
 	SET @current_step = 'stg.sp_load_order_items';
 	SET @started = SYSDATETIME()
