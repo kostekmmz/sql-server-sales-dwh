@@ -10,6 +10,8 @@ CREATE SCHEMA dwh;
 GO
 CREATE SCHEMA mart;
 GO
+CREATE SCHEMA etl;
+GO
 
 DROP TABLE IF EXISTS raw.orders;
 CREATE TABLE raw.orders (
@@ -297,3 +299,21 @@ CREATE TABLE dwh.rejected_facts (
     _source         VARCHAR(50) NOT NULL DEFAULT 'etl_practice'
 );
 
+
+CREATE TABLE etl.run_log (
+    run_id        INT           NOT NULL,
+    step_name     VARCHAR(100)  NOT NULL,
+    started_at    DATETIME2     NOT NULL,
+    finished_at   DATETIME2     NULL,          -- NULL = krok w toku/pad³
+    rows_affected INT           NULL,
+    status        VARCHAR(20)   NOT NULL       -- 'running'/'success'/'failed'
+);
+CREATE TABLE etl.error_log (
+    run_id          INT            NOT NULL,
+    step_name       VARCHAR(100)   NOT NULL,
+    error_number    INT            NULL,
+    error_message   NVARCHAR(4000) NULL,
+    error_procedure NVARCHAR(200)  NULL,
+    error_line      INT            NULL,
+    logged_at       DATETIME2      NOT NULL DEFAULT SYSDATETIME()
+);
