@@ -293,6 +293,7 @@ CREATE TABLE dwh.rejected_facts (
     customer_key    INT,
 	product_key		INT,
     order_id        CHAR(32) NOT NULL,
+	order_item_id	SMALLINT NOT NULL,
 	order_status    VARCHAR(20) NOT NULL,
 	reject_reason				  NVARCHAR(100)   NULL,
     _loaded_at      DATETIME2 NOT NULL DEFAULT SYSDATETIME(),
