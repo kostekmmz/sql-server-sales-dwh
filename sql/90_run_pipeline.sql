@@ -70,6 +70,47 @@ BEGIN
 		rows_affected = (SELECT COUNT(*) FROM stg.product_category_name_translation)
 	WHERE run_id = @run_id AND step_name = @current_step; 
 
+
+	--dwh.sp_load_products------------------------------
+	SET @current_step = 'dwh.sp_load_products';
+	SET @started = SYSDATETIME()
+	INSERT INTO etl.run_log (run_id, step_name, started_at, status)
+            VALUES (@run_id, @current_step, @started, 'running');
+
+	EXEC dwh.sp_load_products;
+
+	UPDATE etl.run_log
+	SET finished_at = SYSDATETIME(), status = 'success',
+		rows_affected = (SELECT COUNT(*) FROM dwh.products)
+	WHERE run_id = @run_id AND step_name = @current_step; 
+
+	--dwh.sp_load_customer_scd2-----------------------------
+		SET @current_step = 'dwh.sp_load_customer_scd2';
+	SET @started = SYSDATETIME()
+	INSERT INTO etl.run_log (run_id, step_name, started_at, status)
+            VALUES (@run_id, @current_step, @started, 'running');
+
+	EXEC dwh.sp_load_customer_scd2;
+
+	UPDATE etl.run_log
+	SET finished_at = SYSDATETIME(), status = 'success',
+		rows_affected = (SELECT COUNT(*) FROM dwh.customers)
+	WHERE run_id = @run_id AND step_name = @current_step; 
+
+	--dwh.sp_load_fact_sales----------------------------
+		SET @current_step = 'dwh.sp_load_fact_sales';
+	SET @started = SYSDATETIME()
+	INSERT INTO etl.run_log (run_id, step_name, started_at, status)
+            VALUES (@run_id, @current_step, @started, 'running');
+
+	EXEC dwh.sp_load_fact_sales;
+
+	UPDATE etl.run_log
+	SET finished_at = SYSDATETIME(), status = 'success',
+		rows_affected = (SELECT COUNT(*) FROM dwh.fact_sales)
+	WHERE run_id = @run_id AND step_name = @current_step; 
+
+
 END TRY
 BEGIN CATCH
 	UPDATE etl.run_log SET  finished_at = SYSDATETIME(), status = 'failed'
