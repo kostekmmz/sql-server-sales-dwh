@@ -148,12 +148,13 @@ BEGIN
 
 	
 				INSERT INTO dwh.rejected_facts
-				(date_key, customer_key, product_key, order_id, order_status, reject_reason)
+				(date_key, customer_key, product_key, order_id, order_item_id, order_status, reject_reason)
 					SELECT
 					YEAR(o.order_purchase_timestamp) * 10000 + MONTH(o.order_purchase_timestamp) * 100 + DAY(o.order_purchase_timestamp),
 									dc.customer_key, 
 									dp.product_key,           
-									o.order_id,
+									oi.order_id,
+									oi.order_item_id,
 									o.order_status,
 					CASE WHEN dp.product_key IS NULL THEN 'unknown product' 
 							WHEN dc.customer_key IS NULL THEN 'unknown customer' 
@@ -162,8 +163,12 @@ BEGIN
 					JOIN olist_dwh.stg.orders o ON oi.order_id = o.order_id
 					LEFT JOIN olist_dwh.dwh.products dp ON dp.product_id = oi.product_id
 					LEFT JOIN olist_dwh.dwh.customers dc ON dc.customer_id = o.customer_id and dc.is_current = 1 
-					WHERE dp.product_key IS NULL 
-					OR dc.customer_key IS NULL
+					WHERE (dp.product_key IS NULL 
+					OR dc.customer_key IS NULL)
+					  AND NOT EXISTS (
+							SELECT 1 FROM dwh.rejected_facts r
+							WHERE r.order_id = oi.order_id AND r.order_item_id = oi.order_item_id
+  );
 			
 				COMMIT TRANSACTION;
 	END TRY
