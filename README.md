@@ -108,4 +108,5 @@ sql/40_marts.sql          reporting views
 sql/90_run_pipeline.sql   orchestrator
 sql/99_tests.sql          balances, reject distributions, quality checks
 sql/analysis/profiling.sql  data profiling (exploration, not part of the build)
+docs/                      data quality findings
 ```
