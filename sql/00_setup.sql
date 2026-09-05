@@ -1,6 +1,6 @@
-CREATE DATABASE olist_dwh_2;
+CREATE DATABASE olist_dwh;
 GO
-USE olist_dwh_2;
+USE olist_dwh;
 GO
 CREATE SCHEMA raw;
 GO
@@ -246,6 +246,23 @@ SELECT
 FROM dates dt
 OPTION (MAXRECURSION 0);
 
+CREATE TABLE dwh.products (
+    product_key                 INT IDENTITY(1,1) NOT NULL,
+    product_id                  CHAR(32)          NOT NULL,
+    product_category_name       NVARCHAR(100)     NULL,
+    product_name_length         SMALLINT          NULL,
+    product_description_length  SMALLINT          NULL,
+    product_photos_qty          SMALLINT          NULL,
+    product_weight_g            INT               NULL,
+    product_length_cm           SMALLINT          NULL,
+    product_height_cm           SMALLINT          NULL,
+    product_width_cm            SMALLINT          NULL,
+    loaded_at                   DATETIME2         NOT NULL
+        CONSTRAINT DF_dwh_dim_product_loaded_at DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT PK_dwh_dim_product PRIMARY KEY (product_key),
+    CONSTRAINT UQ_dwh_dim_product_product_id UNIQUE (product_id)
+);
+
 
 CREATE TABLE dwh.customers (
     customer_key					INT IDENTITY(1,1) NOT NULL PRIMARY KEY,
@@ -311,7 +328,7 @@ CREATE TABLE etl.run_log (
 );
 CREATE TABLE etl.error_log (
     run_id          INT            NOT NULL,
-    step_name       VARCHAR(100)   NOT NULL,
+    step_name       VARCHAR(100)   NULL,
     error_number    INT            NULL,
     error_message   NVARCHAR(4000) NULL,
     error_procedure NVARCHAR(200)  NULL,
