@@ -322,9 +322,9 @@ CREATE TABLE etl.run_log (
     run_id        INT           NOT NULL,
     step_name     VARCHAR(100)  NOT NULL,
     started_at    DATETIME2     NOT NULL,
-    finished_at   DATETIME2     NULL,          -- NULL = krok w toku/pad³
+    finished_at   DATETIME2     NULL,          
     rows_affected INT           NULL,
-    status        VARCHAR(20)   NOT NULL       -- 'running'/'success'/'failed'
+    status        VARCHAR(20)   NOT NULL       
 );
 CREATE TABLE etl.error_log (
     run_id          INT            NOT NULL,
