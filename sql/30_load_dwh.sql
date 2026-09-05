@@ -1,3 +1,5 @@
+USE olist_dwh;
+GO
 CREATE OR ALTER PROCEDURE dwh.sp_load_customer_scd2
 AS 
 BEGIN

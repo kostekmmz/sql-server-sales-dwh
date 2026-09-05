@@ -1,3 +1,5 @@
+USE olist_dwh;
+GO
 CREATE OR ALTER PROCEDURE dwh.sp_run_pipeline
 AS 
 BEGIN
