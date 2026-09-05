@@ -1,3 +1,5 @@
+USE olist_dwh;
+GO
 CREATE OR ALTER PROCEDURE stg.sp_load_customers 
 AS
 BEGIN
@@ -206,7 +208,7 @@ BEGIN
 					 OR TRY_CAST(price AS DECIMAL(10,2)) <= 0        
 					 THEN 'invalid_price'
 					WHEN TRY_CAST(freight_value AS DECIMAL(10,2)) IS NULL
-					 OR TRY_CAST(freight_value AS DECIMAL(10,2)) <= 0        
+					 OR TRY_CAST(freight_value AS DECIMAL(10,2)) < 0        
 					 THEN 'invalid_freight_value'
 						END														AS reject_reason
 		INTO #cleaned_order_items
